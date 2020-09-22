@@ -42,7 +42,7 @@ sep_old <-
          department = course_department) %>% 
   filter(u_grad > 10) %>%
   group_by(title) %>%
-     summarize(sum(u_grad), .groups = "drop") 
+     summarize(u_grad = sum(u_grad), .groups = "drop") 
 
 
 # But this is not correct! Look for Gov 50: Data. What do you see? What can you
@@ -57,7 +57,7 @@ sep_old <-
 ```{r q1}
 
 sep_new <- 
-  read_excel("old_data/class_enrollment_summary_by_term_9-1-2020.xlsx", 
+  read_excel("new_data/class_enrollment_summary_by_term_9-22-2020.xlsx", 
              skip = 3) %>% 
   clean_names() %>% 
   filter(! is.na(course_title)) %>% 
@@ -69,7 +69,9 @@ sep_new <-
          department = course_department) %>% 
   filter(u_grad > 10) %>%
   group_by(title) %>%
-     summarize(sum(u_grad), .groups = "drop") 
+     summarize(u_grad = sum(u_grad), .groups = "drop") 
+
+sep_new
 
 ```
 
@@ -81,17 +83,35 @@ sep_new <-
 
 Before we start on the model, Wisdom suggests we should:
 
+Define exactly what we want to know. Specifically, we want two columns - one column with the net change in the numbers of students enrolled between the two datasets, another with that change expressed as a percentage of the original number of students enrolled.
 
 
 
 After we have a model, Temperance suggests we should:
 
-
+We should recognize the potential limitations of our model. For eg., our dataset might be lacking in understanding the current number of students who are considering dropping a class.
 
 ### Scene 3
 
 **Prompt:** Which classes had the biggest increases and decreases in undergraduate enrollments between September 1 and today? Make a graphic that shows the 5 biggest increases and decreases. Make it look nice.
 
+```{r}
+new <- left_join(sep_old, sep_new, by = "title", suffix = c("_old", "_new")) %>%
+  mutate(change = u_grad_old - u_grad_new) 
+  
+T5_increase <- new %>%
+arrange(desc(change)) %>%
+  slice(1:5)
+
+T5_decrease <- new %>%
+arrange(change) %>%
+  slice(1:5)
+
+full_join(T5_increase, T5_decrease, by = c("title", "u_grad_old", "u_grad_new", "change")) %>%
+  ggplot(aes(x=reorder(title, change), y=change, fill = title)) +
+  geom_col() +
+  labs(title="Biggest Changes in Course Enrolment", y="Change in Number of Students", x="Course Title")
+```
 
 
 
